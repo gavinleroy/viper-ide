@@ -19,10 +19,11 @@ import { DebugServer } from './DebugServer'
 import { Server } from './ServerClass'
 import { ViperServerService } from './ViperServerService'
 
-main().catch((err) => {
-	console.error(`main function has ended with an error: ${err}`);
-	process.exit(1);
-});
+main()
+    .catch((err) => {
+        console.error(`main function has ended with an error: ${err}`);
+        process.exit(1);
+    });
 
 async function main() {
     const argv = await yargs(process.argv.slice(2))
@@ -34,6 +35,11 @@ async function main() {
             description: 'Path to a folder in which log files should be stored',
             type: 'string',
         })
+        .option('stdio', {
+            description: 'Indicate if communication happens over stdio [default false]',
+            type: 'boolean',
+            default: false,
+        })
         .help() // show help if `--help` is used
         .parse();
     // pass command line option to Settings:
@@ -44,9 +50,13 @@ async function main() {
         Settings.logDirPath = argv.logDir;
     }
 
-
-    // Create a connection for the server. The connection uses Node's IPC as a transport
-    Server.connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+    if (argv.stdio) {
+        // Server connection is handled through stdio.
+        Server.connection = createConnection(process.stdin, process.stdout);
+    } else {
+        // Create a connection for the server. The connection uses Node's IPC as a transport
+        Server.connection = createConnection(new IPCMessageReader(process), new IPCMessageWriter(process));
+    }
     Server.documents.listen(Server.connection);
 
     registerHandlers();
